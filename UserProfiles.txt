@@ -1,0 +1,68 @@
+using Microsoft.SharePoint.Client.UserProfiles;
+using Microsoft.SharePoint.Client;
+using System;
+using System.Collections.Generic;
+using System.Security;
+using System.Text;
+ 
+namespace ExportUserProfile
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            using (ClientContext tenantContext = new ClientContext("https://yousite-admin.sharepoint.com/ Jump "))
+            {
+                SecureString passWord = new SecureString();
+                foreach (char c in "yourpassword".ToCharArray())
+                    passWord.AppendChar(c);
+                tenantContext.Credentials = new SharePointOnlineCredentials("admin@yoursite.onmicrosoft.com", passWord);
+ 
+                PeopleManager peopleManager = new PeopleManager(tenantContext);
+ 
+                UserCollection users = tenantContext.Web.SiteUsers;
+                tenantContext.Load(users);
+                tenantContext.ExecuteQuery();
+ 
+                string csvFilePath = @"C:\Users\Geetanjali\Desktop\users.csv";
+                StringBuilder items = new StringBuilder();
+ 
+ 
+                string[] userProfileProperties = { "AccountName", "FirstName", "LastName", "PreferredName", "Manager", "AboutMe", "PersonalSpace", "PictureURL", "UserName", "WorkEmail", "SPS-Birthday" };
+ 
+                foreach (string propertyKey in userProfileProperties)
+                {
+                    items.Append(propertyKey);
+                    items.Append(",");
+                }
+                items.AppendLine();
+ 
+                foreach (User user in users)
+                {
+                    try
+                    {
+                        if (user.PrincipalType != Microsoft.SharePoint.Client.Utilities.PrincipalType.User) continue;
+ 
+                        UserProfilePropertiesForUser userProfilePropertiesForUser = new UserProfilePropertiesForUser(tenantContext, user.LoginName, userProfileProperties);
+                        IEnumerable<string> profileProperties = peopleManager.GetUserProfilePropertiesFor(userProfilePropertiesForUser);
+                        tenantContext.Load(userProfilePropertiesForUser);
+                        tenantContext.ExecuteQuery();
+                        foreach (string property in profileProperties)
+                        {
+                            items.Append(property);
+                            items.Append(",");
+                        }
+                        items.AppendLine();
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+ 
+                }
+ 
+                System.IO.File.WriteAllText(csvFilePath, items.ToString());
+ 
+            }
+        }
+    }
+}
