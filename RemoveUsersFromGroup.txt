@@ -1,0 +1,65 @@
+using Microsoft.SharePoint.Client;  
+using System;  
+using System.IO;  
+using System.Security;  
+using System.Text;  
+
+class Program  
+   {  
+       public static string _userName = "Test\\KDUser";  
+       public static string _password = "Password01";  
+       public static string _url = "http://TestLink:2019/";  
+  
+       static void Main(string[] args)  
+       {  
+           ClientContext clientContext = GetContext();  
+  
+           var GroupData = GetAllGroup(clientContext);  
+           foreach (var item in GroupData)  
+           {  
+               Console.WriteLine(item.Title);  
+               var userData = item.Users;  
+               AddUser(clientContext, item, _userName);  
+           }  
+           Console.ReadLine();  
+       }  
+  
+  
+       public static void AddUser(ClientContext clientContext, Group group, string logonName)  
+       {  
+           User aoUser = clientContext.Web.EnsureUser(logonName);  
+           User oUser = group.Users.AddUser(aoUser);  
+           clientContext.ExecuteQuery();  
+       }  
+  
+       public static void RemoveUSer(ClientContext clientContext, Group group, string logonName)  
+       {  
+           User oUser = clientContext.Web.EnsureUser(logonName);  
+  
+           clientContext.Load(oUser);  
+           clientContext.ExecuteQuery();  
+           group.Users.RemoveByLoginName(oUser.LoginName);  
+           clientContext.ExecuteQuery();  
+       }  
+  
+  
+       public static GroupCollection GetAllGroup(ClientContext clientContext)  
+       {  
+           GroupCollection list = clientContext.Web.SiteGroups;  
+           clientContext.Load(list);  
+           clientContext.ExecuteQuery();  
+           return list;  
+       }  
+  
+       public static ClientContext GetContext()  
+       {  
+           SecureString passWord = new SecureString();  
+           foreach (char c in _password.ToCharArray())  
+               passWord.AppendChar(c);  
+  
+           ClientContext clientContext = new ClientContext(_url);  
+           clientContext.Credentials = new System.Net.NetworkCredential(_userName, passWord);  
+           return clientContext;  
+       }  
+  
+   }  
